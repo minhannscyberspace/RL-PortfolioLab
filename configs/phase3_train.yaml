@@ -1,0 +1,14 @@
+seed: 42
+
+phase2_env_config_path: configs/phase2_env.yaml
+
+algo:
+  # Supported: "PPO" or "SAC"
+  name: PPO
+  total_timesteps: 10000
+  policy: MlpPolicy
+
+output:
+  model_dir: artifacts/phase3/models
+  run_name: baseline
+

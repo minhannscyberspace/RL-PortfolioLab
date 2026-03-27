@@ -1,0 +1,16 @@
+seed: 42
+
+# Wide CSV format:
+# - one column containing dates (sorted or will be sorted)
+# - one column per asset (all other columns)
+date_column: date
+asset_columns: null
+
+missing_value_strategy: ffill
+
+feature_builder:
+  return_lag: 1
+  vol_window: 20
+  cov_window: 60
+  min_periods: 5
+

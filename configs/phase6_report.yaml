@@ -1,0 +1,24 @@
+seed: 42
+
+inputs:
+  benchmarks_comparison_path: artifacts/phase4/benchmarks/baseline_benchmarks/comparison.json
+  stress_summary_path: artifacts/phase5/stress/baseline_stress/stress_summary.json
+  walkforward_summary_path: artifacts/phase7/walkforward/baseline_walkforward/walkforward_summary.json
+  # Optional (if exists):
+  rl_eval_path: artifacts/phase3/eval/baseline_eval/eval.json
+  data_config_path: configs/data_stooq.yaml
+  phase2_env_config_path: configs/phase2_env.yaml
+
+red_flags:
+  crash_sharpe_max: -0.5
+  max_drawdown_max: 0.45
+  cvar5_min: -0.03
+  avg_turnover_max: 0.20
+  total_cost_rate_max: 1.0
+  pct_pos_sharpe_min: 55.0
+  p10_sharpe_min: -0.5
+
+output:
+  out_dir: reports
+  run_name: baseline_report
+

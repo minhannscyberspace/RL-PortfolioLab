@@ -1,0 +1,17 @@
+source: stooq
+
+# Stooq tickers use suffixes like ".us" for US equities/ETFs (lowercase works best).
+tickers:
+  - spy.us
+  - qqq.us
+  - iwm.us
+  - tlt.us
+
+start_date: "2005-01-01"
+end_date: null
+
+price_field: close
+
+output_csv: data/raw/prices_wide.csv
+date_column: date
+

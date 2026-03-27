@@ -1,0 +1,19 @@
+seed: 42
+
+# Uses Phase 1 feature output as the data source.
+phase1_features_path: artifacts/phase1/phase1_wide_features.json
+
+env:
+  initial_cash: 100000.0
+  # Long-only by default. Set to -1.0 for allowing short (still normalized after clipping).
+  min_weight: 0.0
+  max_weight: 1.0
+  # Max leverage/exposure constraint: sum(abs(w)) <= max_gross_exposure
+  max_gross_exposure: 1.0
+
+  # Trading frictions (simple but realistic enough for MVP):
+  # cost_rate applies to turnover: sum(abs(delta_w)) * cost_rate
+  transaction_cost_rate: 0.001
+  slippage_rate: 0.0005
+  turnover_penalty: 0.0001
+

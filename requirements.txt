@@ -1,0 +1,8 @@
+pyyaml
+pytest
+
+# RL / training (Phase 3)
+gymnasium
+stable-baselines3
+torch
+numpy

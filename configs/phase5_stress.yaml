@@ -1,0 +1,20 @@
+seed: 42
+
+# Inputs: directory containing eval artifacts with a `series` list that includes `portfolio_return` and `equity_after`.
+# Works with:
+# - Phase 4 benchmark outputs: artifacts/phase4/benchmarks/<run_name>/*.eval.json
+# - Phase 3 eval output: artifacts/phase3/eval/<run_name>/eval.json
+input_eval_dir: artifacts/phase4/benchmarks/baseline_benchmarks
+
+regimes:
+  # High/low volatility based on rolling std of portfolio returns
+  vol_window: 20
+  high_vol_quantile: 0.8
+
+  # Crash regime based on worst returns
+  crash_quantile: 0.05
+
+output:
+  out_dir: artifacts/phase5/stress
+  run_name: baseline_stress
+

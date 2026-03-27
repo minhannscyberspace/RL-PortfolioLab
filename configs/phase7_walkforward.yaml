@@ -1,0 +1,23 @@
+seed: 42
+
+phase2_env_config_path: configs/phase2_env.yaml
+
+splits:
+  # All indices are in "feature time" (returns index), i.e. Phase 1 feature arrays length T.
+  train_size: 60
+  test_size: 30
+  step_size: 30
+
+benchmarks:
+  - name: equal_weight
+  - name: momentum
+    lookback: 20
+  - name: inverse_vol
+  - name: mean_variance
+    lookback: 60
+    ridge: 1e-6
+
+output:
+  out_dir: artifacts/phase7/walkforward
+  run_name: baseline_walkforward
+

@@ -1,0 +1,16 @@
+seed: 42
+
+phase2_env_config_path: configs/phase2_env.yaml
+
+model:
+  algo: PPO
+  model_path: artifacts/phase3/models/baseline/ppo_model.zip
+
+eval:
+  max_steps: 200
+  deterministic: true
+
+output:
+  out_dir: artifacts/phase3/eval
+  run_name: baseline_eval
+

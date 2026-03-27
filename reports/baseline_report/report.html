@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RL-PortfolioLab Report</title>
+  <style>
+    :root {
+      --bg: #f7f8fb;
+      --panel: #ffffff;
+      --text: #0f172a;
+      --muted: #586174;
+      --line: #e5e7eb;
+      --head: #f3f4f6;
+      --accent: #2563eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, -apple-system, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 24px auto;
+      padding: 0 16px 32px;
+    }
+    h1, h2, h3 { margin: 0.7em 0 0.28em; line-height: 1.25; }
+    h1 { font-size: 2rem; }
+    h2 { font-size: 1.28rem; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+    h3 { font-size: 1rem; color: #111827; }
+    p, ul, pre { margin-top: 0.55em; margin-bottom: 0.85em; }
+    ul { padding-left: 20px; }
+    li + li { margin-top: 4px; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code {
+      background: #eef2ff;
+      color: #1e3a8a;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-size: 0.92em;
+    }
+    pre {
+      background: #0b1020;
+      color: #e5ecff;
+      padding: 12px;
+      border-radius: 10px;
+      overflow: auto;
+      font-size: 0.9rem;
+      border: 1px solid #1f2a44;
+    }
+    .muted { color: var(--muted); }
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 760px;
+      margin: 0;
+      background: var(--panel);
+      font-size: 0.94rem;
+    }
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 9px 10px;
+      text-align: left;
+      vertical-align: top;
+      white-space: nowrap;
+    }
+    th {
+      background: var(--head);
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    tr:nth-child(even) td { background: #fafafa; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      background: var(--panel);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+    .card h3 { margin-top: 0; margin-bottom: 6px; }
+    .spark { width: 100%; height: 72px; display: block; margin: 4px 0 2px; }
+  </style>
+</head>
+<body>
+<main class="container">
+<h1>RL-PortfolioLab — Baseline Report</h1>
+<p class="muted">Generated from Phase 4 benchmarks + Phase 5 stress slicing + Phase 7 walk-forward.</p>
+<p class="muted">Jump to: <a href="#bench">benchmarks</a> · <a href="#wf">walk-forward</a> · <a href="#stress">stress</a></p>
+<h2>Dataset & provenance</h2>
+<pre>{
+  "source": "stooq",
+  "tickers": [
+    "spy.us",
+    "qqq.us",
+    "iwm.us",
+    "tlt.us"
+  ],
+  "start_date": "2005-01-01",
+  "end_date": null,
+  "output_csv": "data/raw/prices_wide.csv"
+}</pre>
+<h2>Metrics glossary (how to read the tables)</h2>
+<ul><li><b>final_equity</b>: ending portfolio value. <b>Higher is better</b>.</li><li><b>total_reward</b>: sum of per-step rewards ≈ return − costs − turnover penalty. <b>Higher is better</b>.</li><li><b>sharpe</b>: mean(returns)/std(returns). <b>Higher is better</b> (NaN if std≈0).</li><li><b>max_drawdown</b>: worst peak→trough equity drop fraction. <b>Lower is better</b>.</li><li><b>cvar_5</b>: average of worst 5% returns. <b>Less negative / higher is better</b>.</li><li><b>avg_turnover</b>: avg Σ|Δw| per step (trading aggressiveness). <b>Lower is better</b>.</li><li><b>walk-forward sharpe</b>: distribution across out-of-sample folds; prefer higher median and better p10.</li><li><b>regimes</b>: metrics computed within high-vol/low-vol/crash/calm slices.</li></ul>
+<h2>Key takeaways</h2>
+<ul><li>Best final equity: `equal_weight` (636401.6731233619)</li><li>Best Sharpe (in-sample backtest): `inverse_vol` (0.05064722299243669)</li></ul>
+<h2>Methodology</h2>
+<ul><li><b>Data</b>: daily close prices → returns + rolling stats.</li><li><b>Action</b>: continuous target weights per asset.</li><li><b>Turnover</b>: Σ|w_t − w_{t−1}|.</li><li><b>Costs</b>: transaction_cost_rate * turnover + slippage_rate * turnover (applied to equity).</li><li><b>Reward</b>: return − cost − slippage − turnover_penalty (per-step).</li><li><b>Walk-forward</b>: expanding train window; evaluate Sharpe distribution across OOS folds.</li></ul>
+<h2 id="bench">Benchmark comparison</h2>
+<p class="muted">Compare final equity and risk metrics. A strategy can "win" on equity but still be fragile (drawdown/CVaR).</p>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>policy</th><th>final_equity</th><th>total_reward</th><th>sharpe</th><th>max_drawdown</th><th>cvar_5</th><th>avg_turnover</th></tr></thead>
+  <tbody>
+    <tr><td>equal_weight</td><td>636402</td><td>2.08363</td><td>0.0418389</td><td>0.416946</td><td>-0.0222086</td><td>0</td></tr><tr><td>momentum</td><td>79419.4</td><td>-0.10965</td><td>0.0410666</td><td>0.530241</td><td>-0.0232756</td><td>0.266747</td></tr><tr><td>inverse_vol</td><td>553955</td><td>1.85728</td><td>0.0506472</td><td>0.324683</td><td>-0.0180707</td><td>0.0269394</td></tr><tr><td>mean_variance</td><td>164919</td><td>0.71096</td><td>0.0378615</td><td>0.496459</td><td>-0.0257457</td><td>0.16692</td></tr>
+  </tbody>
+</table>
+</div>
+<h2>Equity curves (benchmarks)</h2>
+<p class="muted">Sparklines show the equity path over the episode (downsampled).</p>
+<div class="grid"><div class="card"><h3>equal_weight</h3><svg class="spark" viewBox="0 0 260 70" preserveAspectRatio="none" role="img" aria-label="equity curve sparkline"><polyline fill="none" stroke="#1f77b4" stroke-width="2" points="
+    1.0,66.6 2.3,66.7 3.5,67.0 4.8,67.2 6.0,66.6 7.3,66.3 8.6,66.4 9.8,66.4 11.1,66.6 12.3,66.0 13.6,65.7 14.8,65.7 16.1,65.7 17.4,65.7 18.6,66.3 19.9,66.5 21.1,66.1 22.4,65.6 23.7,65.2 24.9,65.0 26.2,65.1 27.4,65.1 28.7,64.7 29.9,64.4 31.2,64.5 32.5,64.8 33.7,64.5 35.0,63.9 36.2,64.6 37.5,64.4 38.8,65.3 40.0,65.6 41.3,64.9 42.5,64.7 43.8,65.5 45.0,64.8 46.3,65.8 47.6,68.0 48.8,68.1 50.1,68.1 51.3,69.0 52.6,68.5 53.9,67.7 55.1,67.5 56.4,67.1 57.6,66.3 58.9,66.1 60.2,65.9 61.4,65.8 62.7,65.8
+    63.9,65.3 65.2,64.8 66.4,65.1 67.7,65.3 69.0,65.0 70.2,65.0 71.5,64.2 72.7,64.0 74.0,63.6 75.3,63.3 76.5,63.6 77.8,62.8 79.0,62.5 80.3,62.5 81.5,63.6 82.8,63.0 84.1,62.6 85.3,62.3 86.6,61.8 87.8,61.0 89.1,60.5 90.4,60.7 91.6,61.2 92.9,60.4 94.1,60.1 95.4,59.7 96.6,60.5 97.9,60.0 99.2,59.4 100.4,59.0 101.7,58.5 102.9,57.8 104.2,58.9 105.5,57.7 106.7,57.8 108.0,57.4 109.2,56.9 110.5,56.0 111.8,56.4 113.0,55.3 114.3,55.4 115.5,54.8 116.8,54.3 118.0,54.2 119.3,53.8 120.6,53.8 121.8,52.6 123.1,52.4 124.3,51.8 125.6,51.6
+    126.9,51.9 128.1,51.6 129.4,51.3 130.6,53.5 131.9,53.1 133.1,51.4 134.4,51.9 135.7,53.5 136.9,52.3 138.2,51.5 139.4,51.5 140.7,51.0 142.0,49.3 143.2,48.9 144.5,49.6 145.7,49.5 147.0,48.8 148.2,48.3 149.5,47.9 150.8,47.3 152.0,46.6 153.3,46.3 154.5,46.2 155.8,45.3 157.1,44.7 158.3,43.7 159.6,42.8 160.8,43.2 162.1,43.3 163.4,43.5 164.6,41.5 165.9,40.8 167.1,40.3 168.4,40.3 169.6,42.9 170.9,43.5 172.2,43.3 173.4,41.3 174.7,40.1 175.9,40.3 177.2,39.2 178.5,38.3 179.7,38.0 181.0,38.3 182.2,36.7 183.5,35.2 184.7,33.9 186.0,41.9 187.3,36.9 188.5,33.7
+    189.8,32.2 191.0,28.8 192.3,29.1 193.6,28.2 194.8,25.2 196.1,22.5 197.3,20.6 198.6,23.2 199.8,20.0 201.1,19.1 202.4,17.7 203.6,17.0 204.9,17.8 206.1,13.9 207.4,14.4 208.7,18.0 209.9,19.9 211.2,18.2 212.4,27.7 213.7,30.1 215.0,25.6 216.2,27.0 217.5,31.5 218.7,27.9 220.0,29.6 221.2,25.1 222.5,28.0 223.8,25.7 225.0,25.8 226.3,22.0 227.5,22.4 228.8,23.4 230.1,27.3 231.3,22.6 232.6,19.2 233.8,17.9 235.1,16.0 236.3,18.9 237.6,15.1 238.9,11.1 240.1,11.5 241.4,10.5 242.6,11.6 243.9,7.5 245.2,9.0 246.4,10.1 247.7,18.6 248.9,11.5 250.2,9.9 251.4,7.0
+    252.7,4.7 254.0,2.5 255.2,3.8 256.5,1.0 257.7,1.2 259.0,3.3
+  " /></svg><div class="muted">final_equity: 636401.6731233619</div></div><div class="card"><h3>momentum</h3><svg class="spark" viewBox="0 0 260 70" preserveAspectRatio="none" role="img" aria-label="equity curve sparkline"><polyline fill="none" stroke="#1f77b4" stroke-width="2" points="
+    1.0,37.3 2.3,38.1 3.5,41.7 4.8,39.7 6.0,35.9 7.3,33.2 8.6,35.3 9.8,38.6 11.1,41.5 12.3,37.6 13.6,38.3 14.8,37.9 16.1,38.9 17.4,39.5 18.6,44.7 19.9,49.1 21.1,47.2 22.4,44.9 23.7,43.5 24.9,43.1 26.2,45.7 27.4,46.8 28.7,46.6 29.9,45.1 31.2,46.9 32.5,48.1 33.7,48.6 35.0,45.6 36.2,43.6 37.5,50.8 38.8,54.9 40.0,56.5 41.3,55.8 42.5,54.3 43.8,55.3 45.0,57.5 46.3,63.2 47.6,62.3 48.8,60.0 50.1,60.3 51.3,67.3 52.6,69.0 53.9,62.7 55.1,62.0 56.4,63.8 57.6,60.6 58.9,62.2 60.2,63.1 61.4,63.2 62.7,63.1
+    63.9,61.4 65.2,58.6 66.4,57.5 67.7,59.2 69.0,58.2 70.2,61.4 71.5,57.3 72.7,56.0 74.0,52.5 75.3,50.5 76.5,50.5 77.8,51.4 79.0,51.2 80.3,50.7 81.5,48.3 82.8,46.5 84.1,48.5 85.3,51.3 86.6,50.7 87.8,46.2 89.1,43.8 90.4,46.2 91.6,41.5 92.9,41.4 94.1,43.0 95.4,41.8 96.6,44.8 97.9,45.0 99.2,40.8 100.4,42.3 101.7,43.3 102.9,41.2 104.2,46.3 105.5,40.4 106.7,42.4 108.0,43.1 109.2,41.4 110.5,39.4 111.8,40.4 113.0,39.9 114.3,40.5 115.5,40.5 116.8,38.8 118.0,38.3 119.3,37.8 120.6,39.9 121.8,37.8 123.1,36.7 124.3,34.6 125.6,35.5
+    126.9,39.4 128.1,38.6 129.4,39.6 130.6,40.3 131.9,45.6 133.1,43.8 134.4,46.2 135.7,47.9 136.9,46.6 138.2,44.9 139.4,47.0 140.7,48.4 142.0,45.9 143.2,45.2 144.5,49.1 145.7,49.2 147.0,46.2 148.2,46.8 149.5,45.7 150.8,45.5 152.0,44.3 153.3,44.8 154.5,45.3 155.8,44.7 157.1,42.6 158.3,41.4 159.6,40.8 160.8,43.1 162.1,45.5 163.4,48.3 164.6,44.1 165.9,45.9 167.1,46.7 168.4,47.0 169.6,51.4 170.9,53.3 172.2,52.0 173.4,47.6 174.7,46.6 175.9,47.0 177.2,43.7 178.5,42.9 179.7,38.1 181.0,44.9 182.2,43.2 183.5,41.9 184.7,40.2 186.0,36.1 187.3,31.3 188.5,22.6
+    189.8,20.5 191.0,13.8 192.3,19.0 193.6,19.4 194.8,16.2 196.1,6.8 197.3,1.0 198.6,9.3 199.8,3.7 201.1,7.3 202.4,4.8 203.6,6.4 204.9,14.9 206.1,10.6 207.4,18.4 208.7,29.2 209.9,33.3 211.2,34.6 212.4,48.2 213.7,53.7 215.0,51.0 216.2,53.5 217.5,59.0 218.7,54.8 220.0,57.7 221.2,53.9 222.5,57.6 223.8,56.7 225.0,57.6 226.3,52.6 227.5,53.3 228.8,55.2 230.1,60.1 231.3,57.4 232.6,54.2 233.8,51.8 235.1,51.2 236.3,55.5 237.6,52.5 238.9,48.2 240.1,52.0 241.4,54.1 242.6,55.1 243.9,50.9 245.2,53.2 246.4,52.9 247.7,57.0 248.9,48.4 250.2,47.5 251.4,44.9
+    252.7,45.7 254.0,46.0 255.2,49.3 256.5,46.3 257.7,46.9 259.0,51.6
+  " /></svg><div class="muted">final_equity: 79419.35084003209</div></div><div class="card"><h3>inverse_vol</h3><svg class="spark" viewBox="0 0 260 70" preserveAspectRatio="none" role="img" aria-label="equity curve sparkline"><polyline fill="none" stroke="#1f77b4" stroke-width="2" points="
+    1.0,66.8 2.3,67.1 3.5,67.3 4.8,67.5 6.0,66.9 7.3,66.6 8.6,66.7 9.8,66.7 11.1,67.0 12.3,66.5 13.6,66.2 14.8,66.2 16.1,66.3 17.4,66.3 18.6,67.0 19.9,67.1 21.1,66.6 22.4,66.2 23.7,65.8 24.9,65.7 26.2,65.8 27.4,65.7 28.7,65.5 29.9,65.3 31.2,65.5 32.5,65.6 33.7,65.3 35.0,64.8 36.2,65.1 37.5,65.1 38.8,66.0 40.0,66.3 41.3,65.8 42.5,65.7 43.8,66.3 45.0,65.8 46.3,66.7 47.6,68.7 48.8,67.9 50.1,67.8 51.3,69.0 52.6,68.5 53.9,68.1 55.1,68.0 56.4,67.5 57.6,66.7 58.9,66.4 60.2,66.3 61.4,66.2 62.7,66.2
+    63.9,65.8 65.2,65.2 66.4,65.4 67.7,65.5 69.0,65.3 70.2,65.1 71.5,64.2 72.7,64.0 74.0,63.5 75.3,63.0 76.5,63.3 77.8,62.5 79.0,62.2 80.3,62.1 81.5,63.3 82.8,62.5 84.1,62.1 85.3,62.0 86.6,61.4 87.8,60.3 89.1,59.7 90.4,60.0 91.6,60.4 92.9,59.4 94.1,59.2 95.4,58.8 96.6,59.7 97.9,59.3 99.2,58.6 100.4,58.2 101.7,57.7 102.9,57.0 104.2,58.2 105.5,56.7 106.7,56.9 108.0,56.5 109.2,55.9 110.5,55.0 111.8,55.3 113.0,54.2 114.3,54.2 115.5,53.5 116.8,53.0 118.0,52.8 119.3,52.2 120.6,52.3 121.8,51.2 123.1,51.0 124.3,50.2 125.6,50.1
+    126.9,50.4 128.1,50.0 129.4,49.6 130.6,52.1 131.9,51.8 133.1,50.2 134.4,50.7 135.7,52.2 136.9,50.7 138.2,49.8 139.4,49.8 140.7,49.3 142.0,47.5 143.2,47.1 144.5,47.9 145.7,47.8 147.0,47.0 148.2,46.4 149.5,45.7 150.8,45.0 152.0,44.1 153.3,43.8 154.5,43.8 155.8,42.8 157.1,42.1 158.3,41.0 159.6,40.0 160.8,40.6 162.1,40.6 163.4,40.9 164.6,38.9 165.9,38.2 167.1,37.8 168.4,37.9 169.6,40.8 170.9,40.4 172.2,40.0 173.4,38.2 174.7,36.8 175.9,36.8 177.2,35.2 178.5,34.3 179.7,33.8 181.0,34.3 182.2,32.6 183.5,30.8 184.7,29.6 186.0,36.8 187.3,31.0 188.5,28.6
+    189.8,26.6 191.0,23.1 192.3,23.4 193.6,23.6 194.8,20.8 196.1,18.7 197.3,17.7 198.6,20.4 199.8,17.3 201.1,16.6 202.4,14.6 203.6,13.8 204.9,14.9 206.1,11.0 207.4,11.3 208.7,15.2 209.9,17.4 211.2,16.0 212.4,25.4 213.7,28.1 215.0,23.6 216.2,25.0 217.5,29.8 218.7,26.3 220.0,27.8 221.2,23.0 222.5,26.3 223.8,23.8 225.0,23.9 226.3,20.0 227.5,20.4 228.8,21.6 230.1,25.7 231.3,20.8 232.6,17.7 233.8,16.0 235.1,14.0 236.3,17.1 237.6,13.1 238.9,9.0 240.1,8.9 241.4,8.1 242.6,9.5 243.9,5.4 245.2,7.0 246.4,8.0 247.7,15.1 248.9,10.3 250.2,8.9 251.4,5.7
+    252.7,4.0 254.0,1.6 255.2,2.9 256.5,1.0 257.7,1.5 259.0,3.3
+  " /></svg><div class="muted">final_equity: 553955.2504796402</div></div><div class="card"><h3>mean_variance</h3><svg class="spark" viewBox="0 0 260 70" preserveAspectRatio="none" role="img" aria-label="equity curve sparkline"><polyline fill="none" stroke="#1f77b4" stroke-width="2" points="
+    1.0,47.1 2.3,47.6 3.5,49.4 4.8,51.4 6.0,50.0 7.3,49.7 8.6,50.6 9.8,50.6 11.1,52.1 12.3,49.7 13.6,49.5 14.8,49.6 16.1,48.8 17.4,48.5 18.6,51.8 19.9,52.3 21.1,51.1 22.4,49.9 23.7,49.1 24.9,48.4 26.2,49.1 27.4,51.2 28.7,50.0 29.9,50.3 31.2,50.7 32.5,50.4 33.7,49.7 35.0,48.1 36.2,49.4 37.5,51.2 38.8,54.6 40.0,57.1 41.3,55.8 42.5,54.2 43.8,57.6 45.0,54.8 46.3,56.5 47.6,63.5 48.8,65.2 50.1,65.0 51.3,69.0 52.6,66.9 53.9,63.2 55.1,62.2 56.4,60.2 57.6,58.7 58.9,58.8 60.2,58.8 61.4,58.9 62.7,59.1
+    63.9,56.8 65.2,54.9 66.4,55.8 67.7,56.3 69.0,57.4 70.2,57.4 71.5,55.9 72.7,55.7 74.0,53.6 75.3,52.8 76.5,54.2 77.8,52.7 79.0,51.9 80.3,53.2 81.5,55.8 82.8,53.6 84.1,53.9 85.3,52.8 86.6,51.3 87.8,50.6 89.1,48.9 90.4,50.2 91.6,51.8 92.9,50.3 94.1,50.1 95.4,50.3 96.6,53.0 97.9,52.1 99.2,49.4 100.4,48.8 101.7,47.1 102.9,46.1 104.2,49.8 105.5,46.4 106.7,46.7 108.0,45.7 109.2,44.0 110.5,42.2 111.8,43.7 113.0,41.9 114.3,41.2 115.5,39.8 116.8,39.4 118.0,38.8 119.3,37.1 120.6,38.7 121.8,37.1 123.1,35.7 124.3,35.9 125.6,36.1
+    126.9,37.1 128.1,37.5 129.4,35.2 130.6,41.6 131.9,38.5 133.1,35.0 134.4,36.7 135.7,42.8 136.9,40.9 138.2,39.2 139.4,39.2 140.7,38.5 142.0,36.0 143.2,35.7 144.5,36.4 145.7,36.5 147.0,35.0 148.2,34.9 149.5,33.3 150.8,32.9 152.0,29.7 153.3,29.8 154.5,29.8 155.8,29.0 157.1,28.8 158.3,27.4 159.6,25.3 160.8,25.9 162.1,27.2 163.4,29.1 164.6,25.3 165.9,25.0 167.1,25.1 168.4,24.5 169.6,30.7 170.9,32.7 172.2,37.0 173.4,36.4 174.7,34.8 175.9,35.5 177.2,33.7 178.5,33.1 179.7,31.8 181.0,34.0 182.2,33.7 183.5,32.1 184.7,29.9 186.0,39.8 187.3,31.7 188.5,29.0
+    189.8,26.8 191.0,23.5 192.3,25.2 193.6,24.3 194.8,19.6 196.1,11.8 197.3,5.9 198.6,11.4 199.8,5.0 201.1,4.0 202.4,1.6 203.6,1.3 204.9,5.2 206.1,1.0 207.4,3.3 208.7,7.9 209.9,10.7 211.2,7.6 212.4,25.7 213.7,31.9 215.0,27.9 216.2,30.4 217.5,37.2 218.7,30.3 220.0,33.7 221.2,29.2 222.5,36.0 223.8,30.0 225.0,29.7 226.3,22.7 227.5,23.2 228.8,24.2 230.1,28.3 231.3,23.4 232.6,20.7 233.8,18.1 235.1,14.4 236.3,17.4 237.6,12.3 238.9,7.7 240.1,9.5 241.4,8.2 242.6,9.2 243.9,3.5 245.2,5.3 246.4,8.1 247.7,20.6 248.9,10.9 250.2,8.9 251.4,4.3
+    252.7,4.0 254.0,2.6 255.2,6.0 256.5,6.0 257.7,7.6 259.0,13.6
+  " /></svg><div class="muted">final_equity: 164919.08374072204</div></div></div>
+<h2>Trading frictions diagnostics</h2>
+<p class="muted">These are aggregated per-step rate terms (not dollars). High turnover usually implies higher costs and lower realism.</p>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>policy</th><th>steps</th><th>avg_turnover</th><th>total_cost_rate</th><th>total_slippage_rate</th><th>total_turnover_penalty</th></tr></thead>
+  <tbody>
+    <tr><td>equal_weight</td><td>5340</td><td>0.000187266</td><td>0.001</td><td>0.0005</td><td>0.0001</td></tr><tr><td>momentum</td><td>5340</td><td>0.266884</td><td>1.42516</td><td>0.71258</td><td>0.142516</td></tr><tr><td>inverse_vol</td><td>5340</td><td>0.0271216</td><td>0.144829</td><td>0.0724147</td><td>0.0144829</td></tr><tr><td>mean_variance</td><td>5340</td><td>0.167076</td><td>0.892185</td><td>0.446092</td><td>0.0892185</td></tr>
+  </tbody>
+</table>
+</div>
+<h2 id="wf">Walk-forward robustness (Sharpe across folds)</h2>
+<p class="muted">Higher median Sharpe is better. Watch p10 (bad periods) and p90 (good periods).</p>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>policy</th><th>folds</th><th>pct_pos_sharpe</th><th>mean_sharpe</th><th>median_sharpe</th><th>min_sharpe</th><th>p10_sharpe</th><th>p90_sharpe</th><th>worst_fold</th></tr></thead>
+  <tbody>
+    <tr><td>equal_weight</td><td>176</td><td>67.0455</td><td>0.0893115</td><td>0.0859273</td><td>-0.31124</td><td>-0.148562</td><td>0.315986</td><td>23</td></tr><tr><td>inverse_vol</td><td>176</td><td>65.9091</td><td>0.0956106</td><td>0.0880787</td><td>-0.322511</td><td>-0.152635</td><td>0.335956</td><td>29</td></tr><tr><td>mean_variance</td><td>176</td><td>65.3409</td><td>0.0897208</td><td>0.0911239</td><td>-0.270672</td><td>-0.144858</td><td>0.305879</td><td>23</td></tr><tr><td>momentum</td><td>176</td><td>63.0682</td><td>0.0652019</td><td>0.0812615</td><td>-0.468837</td><td>-0.179589</td><td>0.290253</td><td>140</td></tr>
+  </tbody>
+</table>
+</div>
+<h2>Walk-forward worst folds (lowest Sharpe)</h2>
+<p class="muted">Where each policy performed worst out-of-sample.</p>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>policy</th><th>fold</th><th>sharpe</th><th>final_equity</th><th>test_start_date</th><th>test_end_date</th></tr></thead>
+  <tbody>
+    <tr><td>equal_weight</td><td>23</td><td>-0.31124</td><td>90507.1</td><td>2007-12-27T00:00:00</td><td>2008-02-08T00:00:00</td></tr><tr><td>equal_weight</td><td>113</td><td>-0.293517</td><td>91267.6</td><td>2018-09-18T00:00:00</td><td>2018-10-29T00:00:00</td></tr><tr><td>equal_weight</td><td>29</td><td>-0.280631</td><td>75378.5</td><td>2008-09-15T00:00:00</td><td>2008-10-24T00:00:00</td></tr><tr><td>equal_weight</td><td>32</td><td>-0.266318</td><td>87530.6</td><td>2009-01-23T00:00:00</td><td>2009-03-06T00:00:00</td></tr><tr><td>equal_weight</td><td>63</td><td>-0.258443</td><td>95912.9</td><td>2012-10-01T00:00:00</td><td>2012-11-13T00:00:00</td></tr><tr><td>momentum</td><td>140</td><td>-0.468837</td><td>85409.9</td><td>2021-12-06T00:00:00</td><td>2022-01-18T00:00:00</td></tr><tr><td>momentum</td><td>175</td><td>-0.342448</td><td>89729.3</td><td>2026-02-12T00:00:00</td><td>2026-03-26T00:00:00</td></tr><tr><td>momentum</td><td>121</td><td>-0.300598</td><td>92170.8</td><td>2019-09-03T00:00:00</td><td>2019-10-14T00:00:00</td></tr><tr><td>momentum</td><td>23</td><td>-0.290436</td><td>88222.7</td><td>2007-12-27T00:00:00</td><td>2008-02-08T00:00:00</td></tr><tr><td>momentum</td><td>32</td><td>-0.258812</td><td>83693.8</td><td>2009-01-23T00:00:00</td><td>2009-03-06T00:00:00</td></tr><tr><td>inverse_vol</td><td>29</td><td>-0.322511</td><td>81671.2</td><td>2008-09-15T00:00:00</td><td>2008-10-24T00:00:00</td></tr><tr><td>inverse_vol</td><td>113</td><td>-0.316621</td><td>92387.9</td><td>2018-09-18T00:00:00</td><td>2018-10-29T00:00:00</td></tr><tr><td>inverse_vol</td><td>23</td><td>-0.31105</td><td>91782.4</td><td>2007-12-27T00:00:00</td><td>2008-02-08T00:00:00</td></tr><tr><td>inverse_vol</td><td>32</td><td>-0.289816</td><td>88323.8</td><td>2009-01-23T00:00:00</td><td>2009-03-06T00:00:00</td></tr><tr><td>inverse_vol</td><td>63</td><td>-0.251795</td><td>95889.2</td><td>2012-10-01T00:00:00</td><td>2012-11-13T00:00:00</td></tr><tr><td>mean_variance</td><td>23</td><td>-0.270672</td><td>90919.2</td><td>2007-12-27T00:00:00</td><td>2008-02-08T00:00:00</td></tr><tr><td>mean_variance</td><td>32</td><td>-0.261499</td><td>85988.8</td><td>2009-01-23T00:00:00</td><td>2009-03-06T00:00:00</td></tr><tr><td>mean_variance</td><td>175</td><td>-0.237032</td><td>90803.5</td><td>2026-02-12T00:00:00</td><td>2026-03-26T00:00:00</td></tr><tr><td>mean_variance</td><td>113</td><td>-0.229199</td><td>89298.9</td><td>2018-09-18T00:00:00</td><td>2018-10-29T00:00:00</td></tr><tr><td>mean_variance</td><td>63</td><td>-0.226026</td><td>94032</td><td>2012-10-01T00:00:00</td><td>2012-11-13T00:00:00</td></tr>
+  </tbody>
+</table>
+</div>
+<h2>Red flags (automatic heuristics)</h2>
+<p class="muted">Thresholds used: crash_sharpe&gt;=-0.5, max_drawdown&lt;=0.45, cvar_5&gt;=-0.03, avg_turnover&lt;=0.2, total_cost_rate&lt;=1.0, pct_pos_sharpe&gt;=55.0%, p10_sharpe&gt;=-0.5.</p>
+<h3>1) Regime fragility (crash behavior)</h3>
+<ul><li>`equal_weight` crash Sharpe is -2.33 (threshold: >= -0.5).</li><li>`inverse_vol` crash Sharpe is -2.58 (threshold: >= -0.5).</li><li>`mean_variance` crash Sharpe is -2.21 (threshold: >= -0.5).</li><li>`momentum` crash Sharpe is -2.64 (threshold: >= -0.5).</li></ul>
+<h3>2) Drawdown & tail-risk warnings</h3>
+<ul><li>`momentum` max_drawdown is 0.53 (threshold: <= 0.45).</li><li>`mean_variance` max_drawdown is 0.496 (threshold: <= 0.45).</li></ul>
+<h3>3) Turnover & trading-cost warnings</h3>
+<ul><li>`momentum` avg_turnover is 0.267 (threshold: <= 0.2).</li><li>`momentum` total_cost_rate is 1.43 (threshold: <= 1.0).</li></ul>
+<h3>4) Walk-forward stability warnings</h3>
+<p class="muted">(none triggered)</p>
+<h3>5) Summary</h3>
+<p>Red flags triggered.</p>
+<h2 id="stress">Regime / stress breakdown</h2>
+<p class="muted">Focus on crash/high-vol regimes to assess robustness.</p>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>policy</th><th>regime</th><th>steps</th><th>sharpe</th><th>max_drawdown</th><th>cvar_5</th><th>final_equity</th></tr></thead>
+  <tbody>
+    <tr><td>equal_weight</td><td>high_vol</td><td>1065</td><td>0.0261145</td><td>0.404704</td><td>-0.0366747</td><td>581985</td></tr><tr><td>equal_weight</td><td>low_vol</td><td>4256</td><td>0.0584359</td><td>0.276816</td><td>-0.0155736</td><td>636402</td></tr><tr><td>equal_weight</td><td>crash</td><td>267</td><td>-2.32978</td><td>0.4063</td><td>-0.0532659</td><td>636402</td></tr><tr><td>equal_weight</td><td>calm</td><td>4142</td><td>0.152432</td><td>0.276816</td><td>-0.0112499</td><td>647346</td></tr><tr><td>inverse_vol</td><td>high_vol</td><td>1065</td><td>0.0156244</td><td>0.283599</td><td>-0.0282542</td><td>553955</td></tr><tr><td>inverse_vol</td><td>low_vol</td><td>4256</td><td>0.0757778</td><td>0.22813</td><td>-0.0133559</td><td>563097</td></tr><tr><td>inverse_vol</td><td>crash</td><td>267</td><td>-2.57614</td><td>0.309695</td><td>-0.0413216</td><td>553955</td></tr><tr><td>inverse_vol</td><td>calm</td><td>4146</td><td>0.163981</td><td>0.22813</td><td>-0.0100019</td><td>563097</td></tr><tr><td>mean_variance</td><td>high_vol</td><td>1065</td><td>0.0157171</td><td>0.468516</td><td>-0.043471</td><td>164919</td></tr><tr><td>mean_variance</td><td>low_vol</td><td>4256</td><td>0.0612454</td><td>0.418882</td><td>-0.0168628</td><td>168146</td></tr><tr><td>mean_variance</td><td>crash</td><td>267</td><td>-2.20936</td><td>0.46113</td><td>-0.0624632</td><td>164919</td></tr><tr><td>mean_variance</td><td>calm</td><td>4160</td><td>0.14416</td><td>0.418882</td><td>-0.0127398</td><td>168146</td></tr><tr><td>momentum</td><td>high_vol</td><td>1065</td><td>0.035325</td><td>0.512993</td><td>-0.0367264</td><td>86770.8</td></tr><tr><td>momentum</td><td>low_vol</td><td>4256</td><td>0.0495628</td><td>0.528387</td><td>-0.017162</td><td>79419.4</td></tr><tr><td>momentum</td><td>crash</td><td>267</td><td>-2.636</td><td>0.51171</td><td>-0.050941</td><td>79419.4</td></tr><tr><td>momentum</td><td>calm</td><td>4141</td><td>0.140189</td><td>0.528387</td><td>-0.0125732</td><td>80785.2</td></tr>
+  </tbody>
+</table>
+</div>
+<h2>RL policy (SB3) evaluation</h2>
+<pre>{
+  "steps": 119,
+  "total_reward": 0.09578082864455834,
+  "final_equity": 109848.95203876785,
+  "avg_turnover": 0.008403361344537815,
+  "avg_cost": 8.403361344537814e-06
+}</pre>
+<h2>Equity curve (RL eval)</h2>
+<div class="grid"><div class="card"><h3>RL (SB3)</h3><svg class="spark" viewBox="0 0 260 70" preserveAspectRatio="none" role="img" aria-label="equity curve sparkline"><polyline fill="none" stroke="#d62728" stroke-width="2" points="
+    1.0,67.3 3.2,68.4 5.4,68.1 7.6,66.0 9.7,63.0 11.9,63.9 14.1,69.0 16.3,68.8 18.5,67.2 20.7,64.1 22.9,64.9 25.1,68.5 27.2,64.5 29.4,63.3 31.6,60.5 33.8,55.6 36.0,56.4 38.2,52.5 40.4,58.2 42.5,58.6 44.7,55.1 46.9,52.8 49.1,48.9 51.3,47.8 53.5,45.9 55.7,52.5 57.8,54.9 60.0,57.1 62.2,59.3 64.4,54.6 66.6,50.6 68.8,44.1 71.0,41.3 73.2,40.1 75.3,43.8 77.5,42.0 79.7,43.2 81.9,43.3 84.1,35.0 86.3,30.9 88.5,30.7 90.6,36.3 92.8,33.8 95.0,34.0 97.2,36.7 99.4,35.5 101.6,35.5 103.8,34.6 105.9,29.7 108.1,31.2
+    110.3,32.7 112.5,34.3 114.7,36.1 116.9,35.2 119.1,33.8 121.3,29.0 123.4,31.0 125.6,32.3 127.8,38.0 130.0,34.6 132.2,32.7 134.4,27.2 136.6,20.4 138.7,15.8 140.9,20.2 143.1,21.9 145.3,23.9 147.5,18.3 149.7,20.5 151.9,26.7 154.1,26.9 156.2,31.2 158.4,27.7 160.6,27.0 162.8,22.2 165.0,21.2 167.2,25.5 169.4,22.9 171.5,21.9 173.7,14.0 175.9,13.7 178.1,15.5 180.3,14.9 182.5,13.5 184.7,15.7 186.8,16.5 189.0,15.0 191.2,10.7 193.4,13.6 195.6,12.5 197.8,8.7 200.0,8.5 202.2,6.1 204.3,4.6 206.5,3.9 208.7,1.0 210.9,1.3 213.1,7.3 215.3,10.1 217.5,7.2
+    219.6,11.7 221.8,12.1 224.0,12.5 226.2,11.7 228.4,14.0 230.6,11.6 232.8,9.0 234.9,9.4 237.1,18.4 239.3,18.5 241.5,18.0 243.7,16.6 245.9,18.1 248.1,14.3 250.3,11.9 252.4,11.5 254.6,12.3 256.8,17.9 259.0,15.9
+  " /></svg></div></div>
+</main>
+</body>
+</html>
