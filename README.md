@@ -2,7 +2,7 @@
 
 ## About
 
-**RL PortfolioLab** is a Python research pipeline for **reinforcement learning–based portfolio allocation**. It connects:
+**RL PortfolioLab** is a Python research pipeline for reinforcement learning–based portfolio allocation. It connects:
 
 - **Market data** (wide-format daily prices)
 - **Feature engineering** (returns, rolling volatility, rolling covariance) with **no lookahead** in the feature builder tests
@@ -13,7 +13,7 @@
 - **Walk-forward out-of-sample evaluation** for **benchmark policies** (expanding train window, fixed test window, stepped forward)
 - **Automated reporting** (Markdown + HTML): comparisons, stress tables, walk-forward stats, optional RL eval summary, configurable **red-flag** thresholds
 
-My goal is a **credible, reproducible research loop**: same configs drive the same artifact paths, and downstream phases read prior JSON outputs.
+My goal is a credible, reproducible research loop: same configs drive the same artifact paths, and downstream phases read prior JSON outputs.
 
 ---
 
@@ -35,7 +35,7 @@ My goal is a **credible, reproducible research loop**: same configs drive the sa
 
 Use a **virtual environment** and install dependencies needed for your workflow.
 
-**Minimal (phases that avoid heavy ML stacks):** PyYAML is required for configs; `pytest` for tests. See `requirements-phase1.txt` for a minimal list.
+**Minimal (phases that avoid heavy ML stacks):** PyYAML is required for configs; `pytest` for tests. See `requirements.txt` for a full list.
 
 **Full pipeline including RL (Phase 3):** you need a working **NumPy** + **PyTorch** stack and:
 
@@ -46,11 +46,9 @@ python -m pip install --upgrade pip
 pip install pyyaml pytest gymnasium stable-baselines3 torch numpy
 ```
 
-Phase 3 scripts **preflight-check** NumPy in a subprocess; if `import numpy` fails (or segfaults), training/eval will exit with a clear message—fix the Python environment before retrying.
-
 ---
 
-## Rerun everything (one command)
+## Rerun everything in one command
 
 From the repository root:
 
