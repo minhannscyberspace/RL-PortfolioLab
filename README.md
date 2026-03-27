@@ -5,12 +5,12 @@
 **RL PortfolioLab** is a Python research pipeline for reinforcement learning–based portfolio allocation. It connects:
 
 - **Market data** (wide-format daily prices)
-- **Feature engineering** (returns, rolling volatility, rolling covariance) with **no lookahead** in the feature builder tests
+- **Feature engineering** (returns, rolling volatility, rolling covariance) with no lookahead in the feature builder tests
 - A **custom portfolio environment** (long-only weights, gross exposure cap, transaction costs, slippage, turnover penalty)
-- **RL training and evaluation** via **Stable-Baselines3** (**PPO** or **SAC**) through a **Gymnasium** adapter
+- **RL training and evaluation** via Stable-Baselines3 (**PPO** or **SAC**) through a **Gymnasium** adapter
 - **Benchmark strategies** on the **same** environment: equal weight, momentum, inverse volatility, mean-variance (ridge-regularized)
 - **Regime stress tests** (slice performance by volatility / crash-style regimes)
-- **Walk-forward out-of-sample evaluation** for **benchmark policies** (expanding train window, fixed test window, stepped forward)
+- **Walk-forward out-of-sample evaluation** for benchmark policies (expanding train window, fixed test window, stepped forward)
 - **Automated reporting** (Markdown + HTML): comparisons, stress tables, walk-forward stats, optional RL eval summary, configurable **red-flag** thresholds
 
 My goal is a credible, reproducible research loop: same configs drive the same artifact paths, and downstream phases read prior JSON outputs.
@@ -58,15 +58,15 @@ python scripts/run_all_real_data.py
 
 This runs **in order**:
 
-1. Fetch wide CSV — `scripts/fetch_prices_wide.py` → `configs/data_stooq.yaml`
-2. Phase 1 — `scripts/run_phase1.py` → features JSON under `artifacts/phase1/`
-3. Phase 2 — `scripts/run_phase2_env.py` — environment smoke episode
-4. Phase 3 train — `scripts/run_phase3_train.py` — SB3 PPO/SAC
-5. Phase 3 eval — `scripts/run_phase3_eval.py` — rollout + metrics JSON
-6. Phase 4 — `scripts/run_phase4_benchmarks.py` — four benchmarks + `comparison.json`
-7. Phase 5 — `scripts/run_phase5_stress.py` — regime stress summaries
-8. Phase 7 — `scripts/run_phase7_walkforward.py` — OOS walk-forward for benchmarks
-9. Phase 6 — `scripts/run_phase6_report.py` — final report
+1. Fetch wide CSV - `scripts/fetch_prices_wide.py` → `configs/data_stooq.yaml`
+2. Phase 1 - `scripts/run_phase1.py` → features JSON under `artifacts/phase1/`
+3. Phase 2 - `scripts/run_phase2_env.py` - environment smoke episode
+4. Phase 3 train - `scripts/run_phase3_train.py` - SB3 PPO/SAC
+5. Phase 3 eval - `scripts/run_phase3_eval.py` - rollout + metrics JSON
+6. Phase 4 - `scripts/run_phase4_benchmarks.py` - four benchmarks + `comparison.json`
+7. Phase 5 - `scripts/run_phase5_stress.py` - regime stress summaries
+8. Phase 7 - `scripts/run_phase7_walkforward.py` - OOS walk-forward for benchmarks
+9. Phase 6 - `scripts/run_phase6_report.py` - final report
 
 **Default outputs** (matching current configs):
 
@@ -83,17 +83,17 @@ Example with explicit configs:
 
 ```bash
 python scripts/run_all_real_data.py \
-  --data-config configs/data_stooq.yaml \
-  --phase1-config configs/phase1_wide.yaml \
-  --phase2-config configs/phase2_env.yaml \
-  --phase3-train-config configs/phase3_train.yaml \
-  --phase3-eval-config configs/phase3_eval.yaml \
-  --phase4-config configs/phase4_benchmarks.yaml \
-  --phase5-config configs/phase5_stress.yaml \
-  --phase7-config configs/phase7_walkforward.yaml \
-  --phase6-config configs/phase6_report.yaml \
-  --phase1-csv data/raw/prices_wide.csv \
-  --phase1-out artifacts/phase1
+  -data-config configs/data_stooq.yaml \
+  -phase1-config configs/phase1_wide.yaml \
+  -phase2-config configs/phase2_env.yaml \
+  -phase3-train-config configs/phase3_train.yaml \
+  -phase3-eval-config configs/phase3_eval.yaml \
+  -phase4-config configs/phase4_benchmarks.yaml \
+  -phase5-config configs/phase5_stress.yaml \
+  -phase7-config configs/phase7_walkforward.yaml \
+  -phase6-config configs/phase6_report.yaml \
+  -phase1-csv data/raw/prices_wide.csv \
+  -phase1-out artifacts/phase1
 ```
 
 ---
@@ -175,9 +175,9 @@ python scripts/run_phase6_report.py --config configs/phase6_report.yaml
 ### Change report inputs, red-flag thresholds, or report output folder
 
 - **Edit:** `configs/phase6_report.yaml`:
-  - `inputs.*_path` — must match where phase 4/5/7 (and optional phase3 eval) actually wrote files.
-  - `red_flags.*` — numeric thresholds for automatic warnings.
-  - `output.out_dir`, `output.run_name` — control `reports/<run_name>/`.
+  - `inputs.*_path` - must match where phase 4/5/7 (and optional phase3 eval) actually wrote files.
+  - `red_flags.*` - numeric thresholds for automatic warnings.
+  - `output.out_dir`, `output.run_name` - control `reports/<run_name>/`.
 - **Rerun:** phase6 only (after upstream artifacts exist).
 
 ---
@@ -222,14 +222,14 @@ If you change `run_name` or `out_dir` in any YAML, update downstream configs (es
 
 Possible directions to grow RL-PortfolioLab beyond the current MVP:
 
-- **Weight-centric API** — Single contract from features to execution: selection → allocation → timing → risk overlay, swappable modules (benchmarks, RL, rules) without rewriting the pipeline.
-- **RL out-of-sample parity** — Walk-forward or rolling train/validate/test for SB3 policies (aligned with benchmark OOS splits), plus stricter split rules if feature windows overlap.
-- **Data layer** — SQLite or Parquet cache, multiple providers behind one fetcher, schema versioning, incremental updates.
+- **Weight-centric API** - Single contract from features to execution: selection → allocation → timing → risk overlay, swappable modules (benchmarks, RL, rules) without rewriting the pipeline.
+- **RL out-of-sample parity** - Walk-forward or rolling train/validate/test for SB3 policies (aligned with benchmark OOS splits), plus stricter split rules if feature windows overlap.
+- **Data layer** - SQLite or Parquet cache, multiple providers behind one fetcher, schema versioning, incremental updates.
 - **Backtest engine integration** — Optional integration with a mature engine (e.g. bt) or parity tests against a reference implementation for small universes.
 - **Execution (paper/live)** - Target weights → broker orders with pre-trade risk checks; keep the same weight generator for backtest and live.
 - **Packaging & DX** - Installable package (`pyproject.toml`), unified CLI, CI on `pytest`, tutorial notebook mirroring `run_all_real_data.py`.
 - **Richer strategies** - ML/fundamental stock selection, timing overlays, multi-asset rotation with explicit regime logic.
-- **Stronger reproducibility** — Run manifests (config hashes, data fingerprints, library versions, git commit) stored next to artifacts.
+- **Stronger reproducibility** - Run manifests (config hashes, data fingerprints, library versions, git commit) stored next to artifacts.
 
 ---
 
