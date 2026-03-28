@@ -103,36 +103,31 @@ python scripts/run_all_real_data.py \
 Use this when debugging or regenerating only part of the pipeline.
 
 ```bash
-# 0) Data: download wide CSV (Stooq)
+# Data: download wide CSV (Stooq)
 python scripts/fetch_prices_wide.py --config configs/data_stooq.yaml
 
-# 1) Features + Phase 1 artifacts
 python scripts/run_phase1.py --config configs/phase1_wide.yaml \
   --csv data/raw/prices_wide.csv --out artifacts/phase1
 
-# 2) Environment smoke test
+# Environment smoke test
 python scripts/run_phase2_env.py --config configs/phase2_env.yaml
 
-# 3) RL train + eval (requires numpy/torch/SB3)
+#  RL train + eval (requires numpy/torch/SB3)
 python scripts/run_phase3_train.py --config configs/phase3_train.yaml
 python scripts/run_phase3_eval.py --config configs/phase3_eval.yaml
 
-# 4) Benchmarks
+#  Benchmarks
 python scripts/run_phase4_benchmarks.py --config configs/phase4_benchmarks.yaml
 
-# 5) Stress / regimes
+#  Stress / regimes
 python scripts/run_phase5_stress.py --config configs/phase5_stress.yaml
 
-# 7) Walk-forward OOS (benchmarks)
+#  Walk-forward OOS (benchmarks)
 python scripts/run_phase7_walkforward.py --config configs/phase7_walkforward.yaml
 
-# 6) Report (reads phase 4, 5, 7 + optional RL eval)
+#  Report (reads phase 4, 5, 7 + optional RL eval)
 python scripts/run_phase6_report.py --config configs/phase6_report.yaml
 ```
-
-**Dependency note:** Phase 6 expects files listed in `configs/phase6_report.yaml` under `inputs:` (comparison JSON, stress summary, walk-forward summary, optional RL eval). Run phases **4 → 5 → 7** before **6**, or update paths if you use different `run_name` output folders.
-
----
 
 ## How to update behavior (what to edit, then what to rerun)
 
@@ -180,8 +175,6 @@ python scripts/run_phase6_report.py --config configs/phase6_report.yaml
   - `output.out_dir`, `output.run_name` - control `reports/<run_name>/`.
 - **Rerun:** phase6 only (after upstream artifacts exist).
 
----
-
 ## Tests
 
 From the repo root:
@@ -191,15 +184,6 @@ pytest -q
 ```
 
 Core logic (loader, features, env reward/costs/constraints, metrics, regimes, walk-forward splits, report generation smoke tests) is covered without requiring a full SB3 training run.
-
----
-
-## Design notes for maintainers
-
-- **Benchmark walk-forward (Phase 7)** evaluates policies on **held-out time windows** defined in config. **RL training/eval (Phase 3)** uses the environment built from the **full** Phase 1 feature series unless you add a separate split—document this when publishing results.
-- **Artifacts and reports** are intentional outputs; regenerate when configs change so provenance stays aligned (`AGENTS.md` marks these areas as sensitive for reproducibility).
-
----
 
 ## Quick reference: default artifact locations
 
@@ -216,7 +200,6 @@ Core logic (loader, features, env reward/costs/constraints, metrics, regimes, wa
 
 If you change `run_name` or `out_dir` in any YAML, update downstream configs (especially `phase6_report.yaml` `inputs`).
 
----
 
 ## Future work / extensions
 
@@ -231,7 +214,6 @@ Possible directions to grow RL-PortfolioLab beyond the current MVP:
 - **Richer strategies** - ML/fundamental stock selection, timing overlays, multi-asset rotation with explicit regime logic.
 - **Stronger reproducibility** - Run manifests (config hashes, data fingerprints, library versions, git commit) stored next to artifacts.
 
----
 
 ## Disclaimer
 
